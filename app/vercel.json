@@ -1,0 +1,29 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/Noted.html" }
+  ],
+  "functions": {
+    "api/insights.js": { "maxDuration": 60 },
+    "api/report.js": { "maxDuration": 60 },
+    "api/voice-parse.js": { "maxDuration": 30 },
+    "api/doc-extract.js": { "maxDuration": 60 }
+  },
+  "crons": [
+    { "path": "/api/send-reminders", "schedule": "0 9 * * *" }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" }
+      ]
+    }
+  ]
+}

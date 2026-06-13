@@ -1,0 +1,197 @@
+/* =============================================================
+   Noted prototype — app chrome on top of the DS tokens.
+   tokens.css owns colours/type/spacing; this owns the device
+   stage, scrolling, focus rings and a few shared utilities.
+   ============================================================= */
+
+/* Body-map palette — flips for dark so the silhouette reads on navy */
+:root {
+  --body-fill-top: #F3F6F8;
+  --body-fill-mid: #E4EBEF;
+  --body-fill-bot: #D2DCE2;
+  --body-stroke:   #88A0AD;
+  --body-detail:   #7C97A6;
+  --body-shine:    rgba(255,255,255,0.6);
+}
+.dark {
+  --body-fill-top: #2C3A45;
+  --body-fill-mid: #243039;
+  --body-fill-bot: #1C262E;
+  --body-stroke:   #4A5E6B;
+  --body-detail:   #5E7682;
+  --body-shine:    rgba(255,255,255,0.08);
+}
+
+/* =============================================================
+   Safe-area insets.
+   Framed preview → fixed values that match the simulated iOS
+   status bar + home indicator. Installed PWA → real device insets
+   (needs viewport-fit=cover). Both chrome.jsx and the screens read
+   these via var(--safe-top) / var(--safe-bottom).
+   ============================================================= */
+:root {
+  --safe-top: 62px;
+  --safe-bottom: 30px;
+}
+/* Real installed app / true phone viewport (driven by JS via .app-fullbleed,
+   NOT by display-mode — some preview/embed environments falsely report
+   display-mode: standalone, which would wrongly collapse the framed insets
+   and let content slide under the simulated status bar). */
+.app-fullbleed {
+  --safe-top: max(env(safe-area-inset-top), 14px);
+  --safe-bottom: max(env(safe-area-inset-bottom), 12px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  /* neutral studio backdrop — independent of in-app theme */
+  background: #5b6470;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root { height: 100%; }
+
+/* ---------- Stage: centres + scales the device ---------- */
+.stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 120% at 50% 0%, #6b7480 0%, #4a525d 60%, #3c434d 100%);
+}
+.device-scale {
+  transform-origin: center center;
+  will-change: transform;
+}
+
+/* ---------- Full-bleed (installed PWA or phone-sized viewport): fill the
+   real screen, drop the simulated bezel ---------- */
+.app-fullbleed,
+.app-fullbleed body { background: var(--bg); }
+.app-fullbleed body { overscroll-behavior-y: none; }
+.stage--full {
+  position: fixed;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  background: var(--bg);
+}
+.stage--full .noted-app {
+  width: 100%;
+  /* dynamic viewport height keeps the layout correct as mobile chrome hides */
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* ---------- App surface (tokens resolve from here down) ---------- */
+.noted-app {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: calc(var(--fs-body) * var(--app-text-scale, 1));
+  line-height: var(--lh-body);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* User-controlled text scaling — applied to the app surface only */
+:root { --app-text-scale: 1; }
+
+/* Reduce-motion toggle from Profile (in addition to OS setting) */
+.force-reduce-motion *,
+.force-reduce-motion *::before,
+.force-reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* The scrollable screen region between status bar and bottom nav */
+.screen-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.screen-scroll::-webkit-scrollbar { display: none; }
+
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
+
+/* ---------- Focus ring — visible on keyboard focus only ---------- */
+:focus { outline: none; }
+.noted-app :focus-visible,
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ---------- Screen transition (frame-0 must be visible; iframes pause the
+   animation timeline while backgrounded, so never hold opacity:0) ---------- */
+@keyframes noted-screen-in {
+  from { transform: translateY(8px); }
+  to   { transform: translateY(0); }
+}
+@keyframes noted-sheet-in {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes noted-fade-in {
+  from { transform: translateY(4px); }
+  to   { transform: translateY(0); }
+}
+@keyframes noted-overlay-in {
+  from { opacity: 0.001; }
+  to   { opacity: 1; }
+}
+.anim-screen { animation: noted-screen-in var(--dur-base) var(--ease); }
+.anim-sheet  { animation: noted-sheet-in var(--dur-modal) var(--ease); }
+.anim-fade   { animation: noted-fade-in var(--dur-base) var(--ease); }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-screen, .anim-sheet, .anim-fade { animation: none !important; }
+}
+
+/* ---------- Pressable: subtle press feedback, no scale ---------- */
+.pressable { transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease); cursor: pointer; }
+
+/* ---------- Range input reset (for native sliders we restyle) ---------- */
+input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; }
+
+/* ---------- Voice recording pulse + spinner ---------- */
+@keyframes voice-pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(11,92,107,0.35); }
+  70%  { box-shadow: 0 0 0 14px rgba(11,92,107,0); }
+  100% { box-shadow: 0 0 0 0 rgba(11,92,107,0); }
+}
+.voice-pulse { animation: voice-pulse-ring 1.6s var(--ease) infinite; }
+@keyframes voice-spin { to { transform: rotate(360deg); } }
+.voice-spin { animation: voice-spin 0.9s linear infinite; }
+@keyframes doc-scan { 0% { top: 4%; } 100% { top: 92%; } }
+.doc-scan-line { animation: doc-scan 1.1s var(--ease) infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .voice-pulse { animation: none !important; }
+  .voice-spin { animation: none !important; }
+  .doc-scan-line { animation: none !important; }
+}
+
+/* ---------- Print: clinical report ---------- */
+@media print {
+  .stage { position: static; background: #fff; display: block; }
+  .device-scale { transform: none !important; }
+}

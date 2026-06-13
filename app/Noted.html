@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Noted — symptom journal</title>
+  <meta name="description" content="Track your symptoms and share a clear record with your clinician." />
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#F8F7F4" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0F1A24" media="(prefers-color-scheme: dark)" />
+  <meta name="color-scheme" content="light dark" />
+
+  <!-- Add-to-home-screen (iOS + Android) -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Noted" />
+  <meta name="application-name" content="Noted" />
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png" />
+  <link rel="icon" href="assets/noted-mark.svg" type="image/svg+xml" />
+
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="app.css?v=2" />
+
+  <!-- PWA glue: SW registration, notifications, install. Plain JS, before React. -->
+  <script src="pwa.js"></script>
+
+  <!-- AI features client (calls the server-side /api/* Claude endpoints). Plain JS, before React. -->
+  <script src="noted-ai.js"></script>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <!-- Supabase client (used by auth.jsx when a project URL + anon key are configured) -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <!-- Your Supabase credentials (blank = in-browser demo store). Must load before auth.jsx. -->
+  <script src="supabase-config.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Foundations (order matters) -->
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel" src="ui.jsx"></script>
+  <script type="text/babel" src="severity.jsx"></script>
+  <script type="text/babel" src="mood.jsx"></script>
+  <script type="text/babel" src="charts.jsx"></script>
+  <script type="text/babel" src="bodymap.jsx"></script>
+  <script type="text/babel" src="data.jsx"></script>
+  <script type="text/babel" src="auth.jsx"></script>
+  <script type="text/babel" src="chrome.jsx"></script>
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="shell.jsx"></script>
+
+  <!-- Flows / screens -->
+  <script type="text/babel" src="voice.jsx"></script>
+  <script type="text/babel" src="screen-today.jsx"></script>
+  <script type="text/babel" src="screen-log.jsx"></script>
+  <script type="text/babel" src="screen-checkin.jsx"></script>
+  <script type="text/babel" src="screen-prom.jsx"></script>
+  <script type="text/babel" src="screen-docupload.jsx"></script>
+  <script type="text/babel" src="screen-insights.jsx"></script>
+  <script type="text/babel" src="screen-health.jsx"></script>
+  <script type="text/babel" src="screen-profile.jsx"></script>
+  <script type="text/babel" src="screen-report.jsx"></script>
+  <script type="text/babel" src="screen-safety.jsx"></script>
+  <script type="text/babel" src="screen-onboarding.jsx"></script>
+
+  <!-- Root app -->
+  <script type="text/babel" src="App.jsx"></script>
+  <script type="text/babel" data-presets="env,react">
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<NotedApp />);
+  </script>
+</body>
+</html>

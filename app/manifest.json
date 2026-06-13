@@ -1,0 +1,39 @@
+{
+  "id": "noted-symptom-journal",
+  "name": "Noted",
+  "short_name": "Noted",
+  "description": "Track your symptoms and share a clear record with your clinician.",
+  "lang": "en-GB",
+  "dir": "ltr",
+  "start_url": "Noted.html?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#F8F7F4",
+  "theme_color": "#0B5C6B",
+  "categories": ["health", "medical", "lifestyle"],
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Log a symptom",
+      "short_name": "Log",
+      "description": "Quickly record a symptom",
+      "url": "Noted.html?action=log&source=shortcut",
+      "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Daily check-in",
+      "short_name": "Check-in",
+      "description": "Run today's check-in",
+      "url": "Noted.html?action=checkin&source=shortcut",
+      "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

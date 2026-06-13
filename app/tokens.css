@@ -1,0 +1,217 @@
+/* =============================================================
+   Noted — Design Tokens
+   Colours, typography, spacing, radii, motion.
+   Light is default; .dark on <html>/<body> switches palette.
+   ============================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ---------- Brand ---------- */
+  --brand-deep-teal-blue:        #0B5C6B;
+  --brand-deep-teal-blue-hover:  #094E5B;
+  --brand-deep-teal-blue-press:  #074049;
+  --brand-slate:                 #2C4A6B;
+  --brand-slate-hover:           #243E5A;
+
+  /* ---------- Neutrals (light) ---------- */
+  --bg:                          #F8F7F4;  /* warm white — never pure white */
+  --surface:                     #FFFFFF;  /* card surfaces (still warm-tinted by bg) */
+  --surface-sunken:              #F2F1ED;
+  --border:                      #E5E7EB;
+  --border-strong:               #D1D5DB;
+
+  --text:                        #1F2937;  /* charcoal — body */
+  --text-secondary:              #6B7280;  /* mid-grey — meta */
+  --text-on-brand:               #FFFFFF;
+
+  /* ---------- Functional ---------- */
+  --improvement:                 #4A7C59;  /* positive trends, completed logs */
+  --improvement-soft:            #E6EEE7;
+  --attention:                   #B8860B;  /* reminders, mild concerns */
+  --attention-soft:              #F6EFD9;
+  --red-flag:                    #A8392E;  /* urgent — used sparingly */
+  --red-flag-soft:               #F2DCD8;
+  --mood:                        #8B7AA8;  /* mental health, mood */
+  --mood-soft:                   #EAE4F0;
+  --info:                        #2C4A6B;  /* slate, used for informational status */
+  --info-soft:                   #DEE5EE;
+
+  /* ---------- Severity scale (1–10, 5 steps) ---------- */
+  --severity-1-2:                #6FAE7E;  /* soft green */
+  --severity-3-4:                #C9B26B;  /* muted yellow */
+  --severity-5-6:                #C99A4E;  /* warm amber */
+  --severity-7-8:                #B87355;  /* terracotta */
+  --severity-9-10:               #A8392E;  /* restrained red */
+  --severity-track-gradient:
+    linear-gradient(
+      90deg,
+      var(--severity-1-2)  0%,
+      var(--severity-1-2)  20%,
+      var(--severity-3-4)  20%,
+      var(--severity-3-4)  40%,
+      var(--severity-5-6)  40%,
+      var(--severity-5-6)  60%,
+      var(--severity-7-8)  60%,
+      var(--severity-7-8)  80%,
+      var(--severity-9-10) 80%,
+      var(--severity-9-10) 100%
+    );
+
+  /* ---------- Focus ring ---------- */
+  --focus-ring:                  rgba(11, 92, 107, 0.40);
+  --focus-ring-inner:            #FFFFFF;
+
+  /* ---------- Typography ---------- */
+  --font-sans:        'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-numeric:     'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+  --fs-h1:            32px;
+  --fs-h2:            24px;
+  --fs-h3:            19px;
+  --fs-body:          17px;   /* body — never below */
+  --fs-small:         15px;   /* small — floor */
+  --fs-meta:          13px;   /* meta labels only; use sparingly */
+  --fs-button:        17px;
+  --fs-display:       40px;   /* severity score display */
+
+  --lh-tight:         1.2;
+  --lh-snug:          1.35;
+  --lh-body:          1.5;    /* body — minimum */
+  --lh-loose:         1.6;
+
+  --fw-regular:       400;
+  --fw-medium:        500;
+  --fw-semibold:      600;
+  --fw-bold:          700;
+
+  /* ---------- Spacing (4px base) ---------- */
+  --space-1:          4px;
+  --space-2:          8px;
+  --space-3:          12px;
+  --space-4:          16px;
+  --space-6:          24px;
+  --space-8:          32px;
+  --space-12:         48px;
+  --space-16:         64px;
+
+  --pad-card:         20px;
+  --pad-section:      24px;
+
+  /* ---------- Radii ---------- */
+  --radius-xs:        4px;    /* chips, tags */
+  --radius-sm:        8px;    /* buttons, inputs, status panels */
+  --radius-md:        12px;   /* cards */
+  --radius-pill:      999px;  /* pills, voice button */
+
+  /* ---------- Borders ---------- */
+  --border-width:     1px;
+  --border-width-input: 1.5px;
+
+  /* ---------- Elevation (used sparingly) ---------- */
+  --shadow-none:      none;
+  --shadow-subtle:    0 1px 2px rgba(15, 26, 36, 0.04);
+  --shadow-sheet:     0 -2px 12px rgba(15, 26, 36, 0.06);
+
+  /* ---------- Motion ---------- */
+  --ease:             cubic-bezier(0.2, 0, 0.2, 1);
+  --dur-fast:         120ms;
+  --dur-base:         200ms;
+  --dur-modal:        320ms;
+
+  /* ---------- Tap target ---------- */
+  --tap-min:          48px;
+  --tap-primary:      56px;
+  --voice-button:     80px;
+}
+
+/* =============================================================
+   Dark mode
+   ============================================================= */
+:root.dark,
+.dark {
+  --bg:                          #0F1A24;
+  --surface:                     #1A2733;
+  --surface-sunken:              #142029;
+  --border:                      rgba(232, 230, 225, 0.10);
+  --border-strong:               rgba(232, 230, 225, 0.18);
+
+  --text:                        #E8E6E1;
+  --text-secondary:              #9CA3AF;
+
+  --brand-deep-teal-blue:        #2A8C9F;  /* lifted for contrast on dark */
+  --brand-deep-teal-blue-hover:  #34A0B4;
+
+  --improvement-soft:            rgba(74, 124, 89, 0.16);
+  --attention-soft:              rgba(184, 134, 11, 0.18);
+  --red-flag-soft:               rgba(168, 57, 46, 0.20);
+  --mood-soft:                   rgba(139, 122, 168, 0.20);
+  --info-soft:                   rgba(44, 74, 107, 0.30);
+
+  --focus-ring:                  rgba(42, 140, 159, 0.55);
+  --focus-ring-inner:            #0F1A24;
+}
+
+/* =============================================================
+   Semantic element styles
+   ============================================================= */
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, .h1 {
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+h2, .h2 {
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+  letter-spacing: -0.005em;
+  margin: 0;
+}
+h3, .h3 {
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+  margin: 0;
+}
+
+p, .body {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  margin: 0;
+}
+.small  { font-size: var(--fs-small); line-height: var(--lh-body); }
+.meta   { font-size: var(--fs-meta);  line-height: var(--lh-snug); color: var(--text-secondary); }
+
+.numeric, .num {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Focus — applied via :focus-visible elsewhere */
+.focus-ring {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

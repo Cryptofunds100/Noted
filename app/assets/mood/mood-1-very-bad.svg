@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Very bad mood">
+  <circle cx="24" cy="24" r="20"></circle>
+  <path d="M16 32 Q24 26 32 32"></path>
+  <line x1="15" y1="19" x2="20" y2="19"></line>
+  <line x1="28" y1="19" x2="33" y2="19"></line>
+</svg>

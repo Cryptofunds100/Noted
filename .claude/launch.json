@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "noted-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/myles/Documents/Claude/Projects/Noted/.claude/preview-server.js"],
+      "port": 8743
+    }
+  ]
+}
