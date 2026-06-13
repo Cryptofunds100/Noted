@@ -13,12 +13,17 @@ create table if not exists public.profiles (
   first_name  text,
   age         int,
   gender      text,
+  pronouns    text,
   conditions  jsonb default '[]'::jsonb,
   medications jsonb default '[]'::jsonb,
   allergies   jsonb default '[]'::jsonb,
   note        text,
   updated_at  timestamptz not null default now()
 );
+
+-- For tables created before `pronouns` existed (create table if not exists
+-- above won't add a column to an existing table), add it idempotently.
+alter table public.profiles add column if not exists pronouns text;
 
 alter table public.profiles enable row level security;
 

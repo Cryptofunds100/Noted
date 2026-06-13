@@ -33,7 +33,7 @@
     if (!row) return null;
     return {
       name: row.name, firstName: row.first_name, age: row.age,
-      gender: row.gender, conditions: row.conditions || [],
+      gender: row.gender, pronouns: row.pronouns || '', conditions: row.conditions || [],
       medications: row.medications || [], allergies: row.allergies || [],
       note: row.note || '',
     };
@@ -79,11 +79,21 @@
     },
     async saveProfile(userId, profile) {
       if (!userId) return;
-      await client.from('profiles').upsert({
+      const row = {
         id: userId, name: profile.name, first_name: profile.firstName, age: profile.age,
-        gender: profile.gender, conditions: profile.conditions, medications: profile.medications,
-        allergies: profile.allergies, note: profile.note, updated_at: new Date().toISOString(),
-      });
+        gender: profile.gender, pronouns: profile.pronouns, conditions: profile.conditions,
+        medications: profile.medications, allergies: profile.allergies, note: profile.note,
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = await client.from('profiles').upsert(row);
+      // Resilience: if the optional `pronouns` column hasn't been added to the
+      // table yet, Postgres rejects the whole upsert. Retry without it so every
+      // other field still saves. (Run the ALTER TABLE in supabase-schema.sql to
+      // persist pronouns too.)
+      if (error && /pronouns/i.test(error.message || '')) {
+        delete row.pronouns;
+        await client.from('profiles').upsert(row);
+      }
     },
     // ---- Entries: symptom logs, check-ins, PROM results --------------------
     async listEntries(userId, kind = 'log') {
