@@ -201,7 +201,7 @@ function NotedApp() {
     switch (tab) {
       case 'today':
         return <TodayScreen go={setTab} openLog={openLog} openProm={openProm} openReport={() => openReport()}
-          openCheckin={openCheckin} checkinDone={checkinDone} logsToday={logsToday}
+          openCheckin={openCheckin} checkinDone={checkinDone} logsToday={logsToday} profile={profile}
           redFlagActive={redFlagActive} openRedFlag={() => setRedFlag({ name: 'Chest tightness spreading to your arm' })} />;
       case 'log':
         return <LogLandingScreen logs={logs} openLog={openLog} openVoiceJournal={() => setSheet({ type: 'voiceJournal' })} goHome={goHome} />;
@@ -244,7 +244,7 @@ function NotedApp() {
       {overlay && overlay.type === 'prom' &&
         <PromFlow promKey={overlay.props.promKey} onClose={closeOverlay} onComplete={completeProm} onRedFlag={triggerRedFlag} onHome={goHome} />}
       {overlay && overlay.type === 'checkin' &&
-        <CheckinFlow onClose={closeOverlay} onSave={saveCheckin} onHome={goHome} sleepSource={sleepSource} />}
+        <CheckinFlow onClose={closeOverlay} onSave={saveCheckin} onHome={goHome} sleepSource={sleepSource} profile={profile} />}
       {overlay && overlay.type === 'doc' &&
         <DocUploadFlow onClose={closeOverlay} onHome={goHome} onDone={() => { closeOverlay(); showToast('Profile updated from your document.'); }} />}
       {overlay && overlay.type === 'report' &&

@@ -11,7 +11,10 @@ const CLINICIAN_VIEWS = {
 
 function ReportFlow({ onClose, initialView = 'patient', onPrint, onHome, logs, profile }) {
   const [view, setView] = React.useState(initialView);
-  const { PATIENT, PROMS, PATTERNS, RED_FLAGS, SEV_TREND, FUNCTION_IMPACT, ADHERENCE } = DEMO;
+  const { PROMS, PATTERNS, RED_FLAGS, SEV_TREND, FUNCTION_IMPACT, ADHERENCE } = DEMO;
+  // The report renders the user's own details (live profile), with the demo seed
+  // as a fallback for any field not yet editable in-app (e.g. sexAtBirth).
+  const PATIENT = { ...DEMO.PATIENT, ...(profile || {}) };
   const { Card, SectionLabel, StatusPanel, Button } = NB;
 
   const adherencePct = Math.round(

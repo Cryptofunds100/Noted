@@ -1,8 +1,10 @@
 // Daily background check-in — light, once-a-day. Smart defaults pre-populated;
 // passive sleep already filled from the wearable. Never blocks; one screen.
 
-function CheckinFlow({ onClose, onSave, onHome, sleepSource }) {
+function CheckinFlow({ onClose, onSave, onHome, sleepSource, profile }) {
   const d = DEMO.CHECKIN_DEFAULTS;
+  // The user's own medications (live profile), falling back to the demo seed.
+  const medsList = (profile && profile.medications) || DEMO.PATIENT.medications;
   const [sleepHours, setSleepHours] = React.useState(d.sleepHours);
   const [sleepEdited, setSleepEdited] = React.useState(false);
   const [editSleep, setEditSleep] = React.useState(false);
@@ -110,7 +112,10 @@ function CheckinFlow({ onClose, onSave, onHome, sleepSource }) {
         <div>
           <SectionLabel>Medications taken</SectionLabel>
           <Card padding={0}>
-            {DEMO.PATIENT.medications.map((m, i, arr) => (
+            {medsList.length === 0 && (
+              <div className="meta" style={{ padding: '14px 16px' }}>No medications in your record.</div>
+            )}
+            {medsList.map((m, i, arr) => (
               <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
                 borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
                 <Ic.Pill size={20} style={{ color: 'var(--brand-deep-teal-blue)' }} />

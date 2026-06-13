@@ -15,8 +15,10 @@ function PassiveStat({ icon, value, unit, label, note }) {
   );
 }
 
-function TodayScreen({ go, openLog, openProm, openReport, openCheckin, checkinDone, logsToday, redFlagActive, openRedFlag }) {
+function TodayScreen({ go, openLog, openProm, openReport, openCheckin, checkinDone, logsToday, redFlagActive, openRedFlag, profile }) {
   const { PATIENT, PASSIVE, PROMS } = DEMO;
+  // Greet by the user's own name (live profile), falling back to the demo seed.
+  const firstName = (profile && (profile.firstName || (profile.name || '').trim().split(' ')[0])) || PATIENT.firstName;
   const { Card, Button, SectionLabel, StatusPanel, SelfReportedNote, UrgentLine } = NB;
 
   // Live full date + time of day. Computed fresh on mount — so it's current
@@ -36,7 +38,7 @@ function TodayScreen({ go, openLog, openProm, openReport, openCheckin, checkinDo
     <div className="screen-scroll anim-fade" style={{ paddingBottom: NC.NAV_H + NC.SAFE_BOTTOM + 96 }}>
       <NC.AppBar
         subtitle={`${greeting} · ${fullDate} · ${timeOfDay}`}
-        title={`Hello, ${PATIENT.firstName}`}
+        title={`Hello, ${firstName}`}
         trailing={<NC.RoundIconButton label="Notifications" onClick={() => go('profile')}><Ic.Bell size={20} /></NC.RoundIconButton>}
       />
 
