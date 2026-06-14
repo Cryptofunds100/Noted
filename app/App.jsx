@@ -116,7 +116,8 @@ function NotedApp() {
   };
 
   const saveLog = (entry) => {
-    setLogs(l => [entry, ...l]);
+    // Upsert by id so editing replaces the existing entry instead of duplicating it.
+    setLogs(l => [entry, ...l.filter(x => x.id !== entry.id)]);
     persistEntry({ kind: 'log', ...entry });
     closeOverlay();
     showToast('Logged. Your clinician will see this on your next share.');
@@ -141,13 +142,14 @@ function NotedApp() {
 
   const saveCheckin = () => {
     setCheckinDone(true);
-    persistEntry({ kind: 'checkin', id: 'checkin-' + DEMO.TODAY_KEY, date: DEMO.TODAY_LABEL, dateKey: DEMO.TODAY_KEY });
+    const dateKey = notedTodayKey();
+    persistEntry({ kind: 'checkin', id: 'checkin-' + dateKey, date: notedTodayLabel(), dateKey });
     closeOverlay();
     showToast('Check-in saved for today.');
   };
   const completeProm = (key, score) => {
-    const todayKey = new Date().toISOString().slice(0, 10);
-    const entry = { kind: 'prom', id: 'prom-' + key + '-' + todayKey, key, score, date: DEMO.TODAY_LABEL, dateKey: todayKey };
+    const todayKey = notedTodayKey();
+    const entry = { kind: 'prom', id: 'prom-' + key + '-' + todayKey, key, score, date: notedTodayLabel(), dateKey: todayKey };
     persistEntry(entry);
     // Reflect the new score immediately so Insights/Report charts update live.
     setProms(p => [entry, ...p.filter(e => e.id !== entry.id)]);
@@ -155,7 +157,7 @@ function NotedApp() {
     showToast(`${DEMO.PROMS[key].name} saved to your record.`);
   };
 
-  const logsToday = logs.filter(l => l.dateKey === DEMO.TODAY_KEY);
+  const logsToday = logs.filter(l => l.dateKey === notedTodayKey());
 
   // --- Finish onboarding: merge collected profile + remember the auth user ---
   const finishOnboarding = async (collected, user) => {
@@ -304,9 +306,32 @@ function NotedApp() {
   );
 }
 
-// Log tab landing — entry points to the full log + voice journal + recent history.
+// Group logs into day buckets (newest first), labelled Today / Yesterday / date.
+function groupLogsByDay(logs) {
+  const sorted = [...(logs || [])].sort((a, b) => {
+    const d = String(b.dateKey || '').localeCompare(String(a.dateKey || ''));
+    return d !== 0 ? d : String(b.time || '').localeCompare(String(a.time || ''));
+  });
+  const todayK = notedTodayKey();
+  const yesterdayK = notedTodayKey(new Date(Date.now() - 86400000));
+  const groups = [];
+  sorted.forEach(l => {
+    const key = l.dateKey || 'undated';
+    let g = groups.find(x => x.key === key);
+    if (!g) {
+      const label = key === todayK ? 'Today' : key === yesterdayK ? 'Yesterday' : (l.date || key);
+      g = { key, label, items: [] };
+      groups.push(g);
+    }
+    g.items.push(l);
+  });
+  return groups;
+}
+
+// Log tab landing — entry points to logging + voice journal + full day-by-day history.
 function LogLandingScreen({ logs, openLog, openVoiceJournal, goHome }) {
   const { Card, SectionLabel, Button, SelfReportedNote, UrgentLine } = NB;
+  const dayGroups = groupLogsByDay(logs);
   return (
     <div className="screen-scroll anim-fade" style={{ paddingBottom: NC.NAV_H + NC.SAFE_BOTTOM + 40 }}>
       <NC.AppBar title="Log" subtitle="Quick to add, easy to fix later" onHome={goHome} />
@@ -338,13 +363,27 @@ function LogLandingScreen({ logs, openLog, openVoiceJournal, goHome }) {
           <Ic.ChevR size={20} style={{ color: 'var(--text-secondary)' }} />
         </Card>
 
-        {/* Recent */}
-        <div>
-          <SectionLabel>Recent logs</SectionLabel>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {logs.slice(0, 6).map(l => <LogCard key={l.id} log={l} onClick={() => openLog(l)} showDate />)}
+        {/* Full history — every log, grouped by the day it was made */}
+        {dayGroups.length === 0 ? (
+          <div>
+            <SectionLabel>Your logs</SectionLabel>
+            <Card style={{ textAlign: 'center', padding: '28px 20px' }}>
+              <div style={{ color: 'var(--text-secondary)', marginBottom: 8, display: 'flex', justifyContent: 'center' }}><Ic.List size={26} /></div>
+              <div style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                No symptoms logged yet.<br />Everything you log is saved here, day by day.
+              </div>
+            </Card>
           </div>
-        </div>
+        ) : (
+          dayGroups.map(g => (
+            <div key={g.key}>
+              <SectionLabel>{g.label}</SectionLabel>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {g.items.map(l => <LogCard key={l.id} log={l} onClick={() => openLog(l)} />)}
+              </div>
+            </div>
+          ))
+        )}
 
         <UrgentLine style={{ marginTop: 4 }} />
       </div>

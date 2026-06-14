@@ -9,6 +9,20 @@
 const TODAY_LABEL = '6 June 2026';
 const TODAY_KEY = '2026-06-06';
 
+// Real local "today" — used to stamp new entries (logs, check-ins, PROMs) with
+// the actual day they were made, and to find today's logs. Local-calendar based
+// so an entry near midnight keeps the user's own date. TODAY_LABEL/KEY above are
+// retained only as harmless display fallbacks.
+function notedTodayKey(d = new Date()) {
+  const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return z.toISOString().slice(0, 10);
+}
+function notedTodayLabel(d = new Date()) {
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+window.notedTodayKey = notedTodayKey;
+window.notedTodayLabel = notedTodayLabel;
+
 // Empty profile template — a fresh account starts here. Filled via onboarding,
 // the Profile screen, or a document upload.
 const PATIENT = {

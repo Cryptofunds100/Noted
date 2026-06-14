@@ -85,7 +85,7 @@ function LogFlow({ initial, onClose, onSave, onRedFlag, onHome }) {
   const [character, setCharacter] = React.useState(seed.character || []);
   const [onset, setOnset] = React.useState(seed.onset || 'On waking');
   const [duration, setDuration] = React.useState(seed.duration || 'Ongoing');
-  const [time, setTime] = React.useState(seed.time || '08:24');
+  const [time, setTime] = React.useState(seed.time || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
   const [note, setNote] = React.useState(seed.note || '');
   const [showContext, setShowContext] = React.useState(false);
   const [ctxTriggers, setCtxTriggers] = React.useState((seed.context && seed.context.triggers) || []);
@@ -112,9 +112,11 @@ function LogFlow({ initial, onClose, onSave, onRedFlag, onHome }) {
   const save = () => {
     if (isRedFlag) { onRedFlag({ name: symptom.name, severity }); return; }
     onSave({
-      id: 'new-' + Date.now(),
+      // Editing keeps the original id + date; a new log is stamped with the real
+      // current day so each log is saved under the day it was actually made.
+      id: seed.id || ('log-' + Date.now()),
       name: symptom.name, code: symptom.code, severity, time,
-      date: DEMO.TODAY_LABEL, dateKey: DEMO.TODAY_KEY,
+      date: seed.date || notedTodayLabel(), dateKey: seed.dateKey || notedTodayKey(),
       onset, duration, character, note, markers,
       context: { triggers: ctxTriggers, relieving: ctxRelieving, mood: ctxMood },
     });
@@ -194,7 +196,7 @@ function LogFlow({ initial, onClose, onSave, onRedFlag, onHome }) {
               <input type="time" value={time} onChange={e => setTime(e.target.value)} aria-label="Time"
                 className="tnum" style={{ border: 0, background: 'transparent', fontFamily: 'inherit', fontSize: 17, color: 'var(--text)', outline: 'none' }} />
             </div>
-            <span className="meta tnum">{DEMO.TODAY_LABEL}</span>
+            <span className="meta tnum">{seed.date || notedTodayLabel()}</span>
           </div>
         </Field>
 

@@ -22,7 +22,7 @@ function CheckinFlow({ onClose, onSave, onHome, sleepSource, profile }) {
 
   return (
     <NC.OverlayScreen
-      header={<NC.ScreenHeader title="Daily check-in" onClose={onClose} onHome={onHome} subtitle={DEMO.TODAY_LABEL} />}
+      header={<NC.ScreenHeader title="Daily check-in" onClose={onClose} onHome={onHome} subtitle={notedTodayLabel()} />}
       footer={<Button block onClick={() => onSave({ sleepHours, sleepQ, hydration, appetite, bowel, activity, mood, meds })}>Save check-in</Button>}>
       <div style={{ padding: '16px 20px 28px', display: 'flex', flexDirection: 'column', gap: 22 }}>
         <StatusPanel tone="info" filled icon={Ic.Refresh}>

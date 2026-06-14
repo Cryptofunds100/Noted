@@ -111,7 +111,7 @@ function ImportHealthSheet({ open, onClose, defaultSource = 'apple', health, set
     if (!file || picked.length === 0) return;
     setImporting(true);
     setTimeout(() => {
-      const stamp = { source, file: file.name, metrics: picked.slice(), at: DEMO.TODAY_LABEL };
+      const stamp = { source, file: file.name, metrics: picked.slice(), at: notedTodayLabel() };
       setHealth(h => ({ ...h, imports: [stamp, ...(h.imports || [])] }));
       setImporting(false);
       onDone(picked.length, src.name);
