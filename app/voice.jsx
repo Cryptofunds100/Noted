@@ -57,32 +57,23 @@ function VoiceSheet({ open, onClose, onApply, context = 'symptom' }) {
     if (!open) { setPhase('idle'); setText(''); setParsed(null); stop(); clearTimeout(scriptedRef.current); }
   }, [open]);
 
-  const SCRIPT = context === 'symptom'
-    ? 'Sharp lower back pain, about a seven out of ten, came on when I bent down this morning. It is shooting down my left leg.'
-    : 'Felt low and tired most of today. Did not feel like going out. Pain in my back made it hard to settle.';
-
   const begin = () => {
-    setText(''); setParsed(null); setPhase('recording');
+    setText(''); setParsed(null);
     const live = start(
       (t) => setText(t),
       () => { if (phaseRef.current === 'recording') finish(); }
     );
-    if (!live) {
-      // scripted fallback — type the canned transcript out
-      let i = 0;
-      const tick = () => {
-        i += 2;
-        setText(SCRIPT.slice(0, i));
-        if (i < SCRIPT.length) scriptedRef.current = setTimeout(tick, 28);
-      };
-      tick();
-    }
+    // No speech recognition on this device — degrade honestly, never fabricate a
+    // transcript. The user can type their symptom instead.
+    if (!live) { setPhase('idle'); return; }
+    setPhase('recording');
   };
 
   const finish = () => {
     stop();
     clearTimeout(scriptedRef.current);
-    const captured = textRef.current || SCRIPT;
+    const captured = (textRef.current || '').trim();
+    if (!captured) { setPhase('idle'); return; }
     setText(captured);
     setPhase('processing');
     const showLocal = () => { setParsed(parseTranscript(captured)); setPhase('review'); };
@@ -117,13 +108,15 @@ function VoiceSheet({ open, onClose, onApply, context = 'symptom' }) {
           <div style={{ fontSize: 15, color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.5, maxWidth: 280 }}>
             Describe your symptom in your own words. We'll turn it into fields you can check and fix before saving.
           </div>
-          <button onClick={begin} aria-label="Start recording"
-            style={{ width: 80, height: 80, borderRadius: 999, border: '2px solid var(--brand-deep-teal-blue)',
-              background: 'var(--surface)', color: 'var(--brand-deep-teal-blue)', display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
-            <Ic.Mic size={34} />
-          </button>
+          {supported && (
+            <button onClick={begin} aria-label="Start recording"
+              style={{ width: 80, height: 80, borderRadius: 999, border: '2px solid var(--brand-deep-teal-blue)',
+                background: 'var(--surface)', color: 'var(--brand-deep-teal-blue)', display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
+              <Ic.Mic size={34} />
+            </button>
+          )}
           <div className="meta" style={{ textAlign: 'center' }}>
-            {supported ? 'Uses your device microphone.' : 'Microphone not available — we\'ll show a sample.'}
+            {supported ? 'Uses your device microphone.' : 'Voice entry needs a microphone, which isn\'t available on this device. You can type your symptom instead.'}
           </div>
         </div>
       )}

@@ -9,62 +9,53 @@ const CLINICIAN_VIEWS = {
   psych:      { label: 'Psychologist', icon: 'Brain', lead: 'mood' },
 };
 
-function ReportFlow({ onClose, initialView = 'patient', onPrint, onHome, logs, profile }) {
+function ReportFlow({ onClose, initialView = 'patient', onPrint, onHome, logs, profile, proms }) {
   const [view, setView] = React.useState(initialView);
-  const { PROMS, PATTERNS, RED_FLAGS, SEV_TREND, FUNCTION_IMPACT, ADHERENCE } = DEMO;
-  // The report renders the user's own details (live profile), with the demo seed
-  // as a fallback for any field not yet editable in-app (e.g. sexAtBirth).
+  const { PROMS } = DEMO;
+  // The report renders the user's own details (live profile).
   const PATIENT = { ...DEMO.PATIENT, ...(profile || {}) };
   const { Card, SectionLabel, StatusPanel, Button } = NB;
 
-  const adherencePct = Math.round(
-    ADHERENCE.meds.reduce((a, m) => a + m.days.filter(Boolean).length, 0) / (ADHERENCE.meds.length * 7) * 100);
+  const hasLogs = Array.isArray(logs) && logs.length > 0;
+  const sev = severityByDay(logs);
+  const freq = symptomFrequency(logs);
+  const sevAvg = sev.data.length ? Math.round(sev.data.reduce((a, b) => a + b, 0) / sev.data.length) : null;
+  const generatedOn = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  // Generate the prose sections (summary, patterns, adherence note) from the
-  // patient's real logs. Falls back to the demo copy if AI is unavailable.
+  const promMax = (k) => (PROMS[k].kind === 'numeric' ? PROMS[k].scaleMax : PROMS[k].maxScore);
+  const promLine = (k, label) => {
+    const s = promStats(PROMS[k], proms);
+    if (!s.taken) return null;
+    return [label, `${s.lastScore}/${promMax(k)} — ${promBand(PROMS[k], s.lastScore)} (latest)`];
+  };
+  const promRows = [['phq9', 'PHQ-9 (depression)'], ['gad7', 'GAD-7 (anxiety)'], ['peg3', 'PEG-3 (pain)']]
+    .map(([k, label]) => { const s = promStats(PROMS[k], proms); return s.taken ? [label, `${s.lastScore}/${promMax(k)}`, promBand(PROMS[k], s.lastScore)] : null; })
+    .filter(Boolean);
+
+  // Generate the prose sections (summary, patterns) from the patient's real
+  // logs. Stays absent (with honest empty copy) when AI is unavailable.
   const [ai, setAi] = React.useState(null);
   React.useEffect(() => {
     let alive = true;
     if (!(window.NotedAI && Array.isArray(logs) && logs.length)) return;
-    NotedAI.generateReport({ profile, logs, proms: PROMS, adherencePct })
+    NotedAI.generateReport({ profile, logs, proms })
       .then((r) => { if (alive && r && r.symptomSummary) setAi(r); })
       .catch(() => {});
     return () => { alive = false; };
   }, [logs]);
-  const reportPatterns = (ai && Array.isArray(ai.patterns) && ai.patterns.length) ? ai.patterns : PATTERNS;
+  const reportPatterns = (ai && Array.isArray(ai.patterns) && ai.patterns.length) ? ai.patterns : [];
 
-  // Profession-specific "leads with" block
+  // Profession-specific "leads with" block — built only from real PROM scores.
   const leadBlock = () => {
-    if (view === 'physio') return (
-      <ReportLead tone="info" icon={Ic.Bone} title="For physiotherapy"
-        points={[
-          ['PEG-3 pain interference', `${PROMS.peg3.lastScore}/10 — ${promBand(PROMS.peg3, PROMS.peg3.lastScore)} (latest)`],
-          ['Most affected function', 'Exercise 7/10, sleep 6/10 interference'],
-          ['Activity', 'Light walks logged on most days; pain eased on walk days'],
-          ['Goal', 'Walk 20 minutes without stopping — progressing'],
-        ]} />
-    );
-    if (view === 'dietitian') return (
-      <ReportLead tone="info" icon={Ic.Utensils} title="For dietetics"
-        points={[
-          ['Bowel pattern (Bristol)', 'Mostly type 4; occasional type 5'],
-          ['Hydration', 'Around 4–6 glasses/day logged'],
-          ['Appetite', 'Reduced on higher-pain days'],
-          ['Food triggers noted', 'Symptoms occasionally logged after meals'],
-          ['IBS-SSS', 'Not active for this patient'],
-        ]} />
-    );
-    if (view === 'psych') return (
-      <ReportLead tone="mood" icon={Ic.Brain} title="For psychology"
-        points={[
-          ['PHQ-9', `${PROMS.phq9.lastScore}/27 — ${promBand(PROMS.phq9, PROMS.phq9.lastScore)}, easing since April`],
-          ['GAD-7', `${PROMS.gad7.lastScore}/21 — ${promBand(PROMS.gad7, PROMS.gad7.lastScore)}, easing`],
-          ['Sleep', 'Averaging 5.8 hrs; often restless'],
-          ['Stress triggers', 'Pain flares often logged alongside low mood'],
-          ['Safety', '1 urgent prompt recorded — see red-flag log'],
-        ]} />
-    );
-    return null;
+    let pts = [];
+    if (view === 'physio') pts = [promLine('peg3', 'PEG-3 pain interference')].filter(Boolean);
+    else if (view === 'psych') pts = [promLine('phq9', 'PHQ-9 (depression)'), promLine('gad7', 'GAD-7 (anxiety)')].filter(Boolean);
+    else return null;
+    if (!pts.length) return null;
+    const tone = view === 'psych' ? 'mood' : 'info';
+    const icon = view === 'physio' ? Ic.Bone : Ic.Brain;
+    const title = view === 'physio' ? 'For physiotherapy' : 'For psychology';
+    return <ReportLead tone={tone} icon={icon} title={title} points={pts} />;
   };
 
   return (
@@ -107,14 +98,13 @@ function ReportFlow({ onClose, initialView = 'patient', onPrint, onHome, logs, p
           <div style={{ padding: '18px 20px', borderBottom: '2px solid var(--brand-deep-teal-blue)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <img src="assets/noted-wordmark.svg" alt="Noted" style={{ height: 24 }} />
-              <span className="meta tnum">Generated {DEMO.TODAY_LABEL}</span>
+              <span className="meta tnum">Generated {generatedOn}</span>
             </div>
             <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 20, fontWeight: 700 }}>{PATIENT.name}</span>
-              <NC.DemoBadge />
+              <span style={{ fontSize: 20, fontWeight: 700 }}>{PATIENT.name || 'Your name'}</span>
             </div>
             <div className="meta tnum" style={{ marginTop: 2 }}>
-              {PATIENT.age} years · {PATIENT.sexAtBirth} at birth · {PATIENT.gender} · {PATIENT.pronouns}
+              {[PATIENT.age != null && `${PATIENT.age} years`, PATIENT.sexAtBirth && `${PATIENT.sexAtBirth} at birth`, PATIENT.gender, PATIENT.pronouns].filter(Boolean).join(' · ') || 'Add your details in Profile'}
             </div>
           </div>
 
@@ -123,72 +113,73 @@ function ReportFlow({ onClose, initialView = 'patient', onPrint, onHome, logs, p
 
             {/* Summary */}
             <ReportSection title="Active conditions">
-              <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {PATIENT.conditions.map(c => <li key={c.name} style={{ fontSize: 15 }}>{c.name} <span className="meta tnum">({c.code})</span></li>)}
-              </ul>
+              {PATIENT.conditions.length ? (
+                <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {PATIENT.conditions.map(c => <li key={c.name} style={{ fontSize: 15 }}>{c.name}{c.code ? <span className="meta tnum"> ({c.code})</span> : null}</li>)}
+                </ul>
+              ) : <div className="meta">None recorded.</div>}
             </ReportSection>
 
             <ReportSection title="Current medications">
-              <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {PATIENT.medications.map(m => <li key={m.name} style={{ fontSize: 15 }}>{m.name} {m.dose} — {m.schedule.toLowerCase()}</li>)}
-              </ul>
+              {PATIENT.medications.length ? (
+                <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {PATIENT.medications.map(m => <li key={m.name} style={{ fontSize: 15 }}>{[m.name, m.dose].filter(Boolean).join(' ')}{m.schedule ? ` — ${m.schedule.toLowerCase()}` : ''}</li>)}
+                </ul>
+              ) : <div className="meta">None recorded.</div>}
             </ReportSection>
 
             <ReportSection title="Allergies">
-              <div style={{ fontSize: 15 }}>{PATIENT.allergies.map(a => `${a.name} (${a.reaction.toLowerCase()})`).join('; ')}</div>
+              <div style={{ fontSize: 15 }}>{PATIENT.allergies.length ? PATIENT.allergies.map(a => `${a.name}${a.reaction ? ` (${a.reaction.toLowerCase()})` : ''}`).join('; ') : <span className="meta">None recorded.</span>}</div>
             </ReportSection>
 
             {/* Symptom summary */}
-            <ReportSection title="Symptom frequency & pattern (last 4 weeks)">
-              <div style={{ fontSize: 15, lineHeight: 1.5 }}>
-                {ai && ai.symptomSummary
-                  ? ai.symptomSummary
-                  : 'Back pain logged 9 times (most frequent), knee pain 5, low mood 6, headache 2. Severity averaging 6–7/10, easing slightly over the period.'}
-              </div>
-              <div style={{ marginTop: 12 }}>
-                <LineChart series={[{ data: SEV_TREND.thisWeek, color: 'var(--severity-7-8)' }]} labels={SEV_TREND.labels} max={10} height={110} />
-              </div>
+            <ReportSection title="Symptom frequency & pattern">
+              {hasLogs ? (
+                <React.Fragment>
+                  <div style={{ fontSize: 15, lineHeight: 1.5 }}>
+                    {ai && ai.symptomSummary
+                      ? ai.symptomSummary
+                      : `${freq.map(f => `${f.label} logged ${f.value}×`).join(', ')}${sevAvg != null ? `. Severity averaging ${sevAvg}/10.` : '.'}`}
+                  </div>
+                  {sev.days >= 2 && (
+                    <div style={{ marginTop: 12 }}>
+                      <LineChart series={[{ data: sev.data, color: 'var(--severity-7-8)' }]} labels={sev.labels} max={10} height={110} />
+                    </div>
+                  )}
+                </React.Fragment>
+              ) : <div className="meta">No symptoms logged yet — log some to build the clinical picture.</div>}
             </ReportSection>
 
             {/* PROMs table */}
             <ReportSection title="Outcome measures (PROMs)">
-              <ReportTable rows={[
-                ['PHQ-9 (depression)', `${PROMS.phq9.lastScore}/27`, promBand(PROMS.phq9, PROMS.phq9.lastScore)],
-                ['GAD-7 (anxiety)', `${PROMS.gad7.lastScore}/21`, promBand(PROMS.gad7, PROMS.gad7.lastScore)],
-                ['PEG-3 (pain)', `${PROMS.peg3.lastScore}/10`, promBand(PROMS.peg3, PROMS.peg3.lastScore)],
-              ]} />
+              {promRows.length ? <ReportTable rows={promRows} /> : <div className="meta">No questionnaires completed yet.</div>}
             </ReportSection>
 
             {/* Suggested patterns */}
-            <ReportSection title="Suggested patterns">
-              <div style={{ padding: '8px 12px', background: 'var(--attention-soft)', borderRadius: 6, marginBottom: 8, fontSize: 13, fontWeight: 600, color: 'var(--attention)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <Ic.Info size={14} /> Observations from self-logged data — not diagnoses
-              </div>
-              <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {reportPatterns.map((p, i) => <li key={i} style={{ fontSize: 15, lineHeight: 1.45 }}>{p.text}</li>)}
-              </ul>
-            </ReportSection>
-
-            {/* Medication adherence */}
-            <ReportSection title="Medication adherence (7 days)">
-              <div style={{ fontSize: 15 }}>{(ai && ai.adherenceNote) ? ai.adherenceNote : `${adherencePct}% of doses taken. A few evening doses of amitriptyline missed.`}</div>
-            </ReportSection>
+            {reportPatterns.length > 0 && (
+              <ReportSection title="Suggested patterns">
+                <div style={{ padding: '8px 12px', background: 'var(--attention-soft)', borderRadius: 6, marginBottom: 8, fontSize: 13, fontWeight: 600, color: 'var(--attention)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <Ic.Info size={14} /> Observations from self-logged data — not diagnoses
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {reportPatterns.map((p, i) => <li key={i} style={{ fontSize: 15, lineHeight: 1.45 }}>{p.text}</li>)}
+                </ul>
+              </ReportSection>
+            )}
 
             {/* Red-flag log */}
             <ReportSection title="Urgent-symptom record">
-              {RED_FLAGS.length === 0 ? <div className="meta">None recorded.</div> : RED_FLAGS.map(r => (
-                <div key={r.id} style={{ fontSize: 15, lineHeight: 1.5 }}>
-                  <span className="tnum">{r.date}</span> — {r.symptom} (rule: {r.rule}). {r.action}. {r.outcome}
-                </div>
-              ))}
+              <div className="meta">None recorded.</div>
             </ReportSection>
 
             {/* Footer / SNOMED + disclaimer */}
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div className="meta">
-                <strong>SNOMED CT mapping:</strong>{' '}
-                {PATIENT.conditions.map(c => c.code).join(', ')}.
-              </div>
+              {PATIENT.conditions.some(c => c.code) && (
+                <div className="meta">
+                  <strong>SNOMED CT mapping:</strong>{' '}
+                  {PATIENT.conditions.map(c => c.code).filter(Boolean).join(', ')}.
+                </div>
+              )}
               <StatusPanel tone="important" icon={Ic.ShieldChk}>
                 <strong>Self-reported — clinical verification required.</strong> This summary is built from the patient's own logs and is not a diagnosis.
               </StatusPanel>

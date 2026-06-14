@@ -43,7 +43,6 @@ function Onboarding({ onFinish, onOpenDoc }) {
     medications: meds.trim() ? splitList(meds) : [],
     allergies: allergies.trim() ? splitList(allergies) : [],
     note: other.trim(),
-    demo: false,
   });
 
   // Persist + hand back to the app.
@@ -92,7 +91,7 @@ function Onboarding({ onFinish, onOpenDoc }) {
         password={password} setPassword={setPassword}
         onBack={() => setStep('welcome')}
         onSignedUp={(u) => { setUser(u); setStep('basics'); }}
-        onLoggedIn={(u) => { onFinish(u.profile ? { ...u.profile, demo: false } : null, u); }}
+        onLoggedIn={(u) => { onFinish(u.profile ? { ...u.profile } : null, u); }}
       />
     );
   }
@@ -122,7 +121,7 @@ function Onboarding({ onFinish, onOpenDoc }) {
             <p style={{ color: 'var(--text-secondary)', marginTop: 6 }}>This helps your clinician read your summary correctly.</p>
           </div>
           <Field label="Your name" help="What we'll call you, and what shows on your shared report.">
-            <TextInput placeholder="e.g. Ade Bello" value={name} onChange={e => setName(e.target.value)} autoComplete="name" leading={<Ic.User size={20} />} />
+            <TextInput placeholder="e.g. Jane Smith" value={name} onChange={e => setName(e.target.value)} autoComplete="name" leading={<Ic.User size={20} />} />
           </Field>
           <Field label="Age">
             <TextInput inputMode="numeric" placeholder="e.g. 54" value={age} onChange={e => setAge(e.target.value.replace(/[^0-9]/g, ''))} className="tnum" style={{ maxWidth: 160 }} />
@@ -302,7 +301,7 @@ function AuthScreen({ name, setName, email, setEmail, password, setPassword, onB
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           {mode === 'signup' && (
             <Field label="Your name" error={touched && !nameValid ? 'Enter your name.' : undefined}>
-              <TextInput value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Ade Bello"
+              <TextInput value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Jane Smith"
                 autoComplete="name" leading={<Ic.User size={20} />} />
             </Field>
           )}

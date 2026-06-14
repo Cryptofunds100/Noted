@@ -2,13 +2,13 @@
 // OCR + extraction step, then a REVIEW screen where every extracted field is
 // confirmed or edited before anything is saved. "Self-reported" reinforced.
 
-function DocUploadFlow({ onClose, onDone, onHome }) {
-  const [phase, setPhase] = React.useState('pick'); // pick | scanning | review | done
+function DocUploadFlow({ onClose, onDone, onHome, onApply }) {
+  const [phase, setPhase] = React.useState('pick'); // pick | scanning | review | error | done
   const [progress, setProgress] = React.useState(0);
-  const [doc, setDoc] = React.useState(DEMO.EXTRACTED_DOC);
-  const [conds, setConds] = React.useState(() => DEMO.EXTRACTED_DOC.conditions.map(c => ({ ...c, keep: true })));
-  const [meds, setMeds] = React.useState(() => DEMO.EXTRACTED_DOC.medications.map(c => ({ ...c, keep: true })));
-  const [allergies, setAllergies] = React.useState(() => DEMO.EXTRACTED_DOC.allergies.map(c => ({ ...c, keep: true })));
+  const [doc, setDoc] = React.useState(null);
+  const [conds, setConds] = React.useState([]);
+  const [meds, setMeds] = React.useState([]);
+  const [allergies, setAllergies] = React.useState([]);
   const fileRef = React.useRef(null);
 
   const { Button, Card, StatusPanel, SelfReportedNote } = NB;
@@ -24,43 +24,46 @@ function DocUploadFlow({ onClose, onDone, onHome }) {
     return () => clearInterval(iv);
   };
 
-  // Demo path: show the sample extraction (used in preview / on any failure).
-  const startScan = () => {
-    setDoc(DEMO.EXTRACTED_DOC);
-    setConds(DEMO.EXTRACTED_DOC.conditions.map(c => ({ ...c, keep: true })));
-    setMeds(DEMO.EXTRACTED_DOC.medications.map(c => ({ ...c, keep: true })));
-    setAllergies(DEMO.EXTRACTED_DOC.allergies.map(c => ({ ...c, keep: true })));
-    setPhase('scanning');
-    const stop = animateProgress(100);
-    setTimeout(() => { stop(); setProgress(100); setTimeout(() => setPhase('review'), 350); }, 1600);
-  };
-
-  // Real path: read the chosen file and extract with Claude; fall back to demo.
+  // Read the chosen file and extract with Claude. No sample fallback — if the
+  // document can't be read we show an honest error, never fabricated data.
   const onFile = (file) => {
     if (!file) return;
-    if (!(window.NotedAI && window.NotedAI.extractDocument)) { startScan(); return; }
+    if (!(window.NotedAI && window.NotedAI.extractDocument)) { setPhase('error'); return; }
     const reader = new FileReader();
     reader.onload = () => {
       setPhase('scanning');
       const stop = animateProgress(92);
       NotedAI.extractDocument({ data: reader.result, mediaType: file.type })
         .then((r) => {
-          setDoc({ source: r.source || 'Your document', dateOnDoc: r.dateOnDoc || '' });
-          setConds(withKeep(r.conditions));
-          setMeds(withKeep(r.medications));
-          setAllergies(withKeep(r.allergies));
+          const c = withKeep(r.conditions), m = withKeep(r.medications), a = withKeep(r.allergies);
           stop(); setProgress(100);
+          // Nothing usable found → error state rather than an empty review.
+          if (!c.length && !m.length && !a.length) { setPhase('error'); return; }
+          setDoc({ source: r.source || 'Your document', dateOnDoc: r.dateOnDoc || '' });
+          setConds(c); setMeds(m); setAllergies(a);
           setTimeout(() => setPhase('review'), 350);
         })
-        .catch(() => { stop(); startScan(); });
+        .catch(() => { stop(); setPhase('error'); });
     };
-    reader.onerror = () => startScan();
+    reader.onerror = () => setPhase('error');
     reader.readAsDataURL(file);
   };
 
-  const pickFile = () => { if (fileRef.current) fileRef.current.click(); else startScan(); };
+  const pickFile = () => { if (fileRef.current) fileRef.current.click(); };
 
   const confCount = conds.filter(c => c.keep).length + meds.filter(m => m.keep).length + allergies.filter(a => a.keep).length;
+
+  // Commit the ticked items into the profile (mapped to the record schema), then
+  // show the confirmation. detail holds dose/schedule for meds, reaction for allergies.
+  const applyAndFinish = () => {
+    const pick = (arr, map) => arr.filter(x => x.keep && x.name).map(map);
+    if (onApply) onApply({
+      conditions: pick(conds, c => ({ name: c.name.trim() })),
+      medications: pick(meds, m => ({ name: m.name.trim(), schedule: (m.detail || '').trim() })),
+      allergies: pick(allergies, a => ({ name: a.name.trim(), reaction: (a.detail || '').trim() })),
+    });
+    setPhase('done');
+  };
 
   // ----- Pick -----
   if (phase === 'pick') {
@@ -107,11 +110,6 @@ function DocUploadFlow({ onClose, onDone, onHome }) {
           {/* Hidden picker — drives the camera/upload buttons above. */}
           <input ref={fileRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
             onChange={(e) => onFile(e.target.files && e.target.files[0])} />
-
-          <button onClick={startScan} className="nlink"
-            style={{ alignSelf: 'center', background: 'none', border: 0, fontSize: 14, color: 'var(--text-secondary)', cursor: 'pointer', padding: 6 }}>
-            Or try it with a sample document
-          </button>
         </div>
       </NC.OverlayScreen>
     );
@@ -146,6 +144,27 @@ function DocUploadFlow({ onClose, onDone, onHome }) {
     );
   }
 
+  // ----- Error -----
+  if (phase === 'error') {
+    return (
+      <NC.OverlayScreen
+        header={<NC.ScreenHeader title="Couldn't read that document" onClose={onClose} onHome={onHome} />}
+        footer={<Button block onClick={() => { setProgress(0); setPhase('pick'); }}>Try another document</Button>}>
+        <div style={{ padding: '40px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, textAlign: 'center' }}>
+          <div style={{ width: 64, height: 64, borderRadius: 999, background: 'var(--surface-sunken)', color: 'var(--text-secondary)', display: 'grid', placeItems: 'center' }}>
+            <Ic.File size={32} />
+          </div>
+          <div>
+            <h2 style={{ marginBottom: 8 }}>We couldn't read that one</h2>
+            <p style={{ color: 'var(--text-secondary)' }}>
+              We couldn't find conditions, medications or allergies in that file. Try a clearer photo or a different document — or add details by hand in your profile.
+            </p>
+          </div>
+        </div>
+      </NC.OverlayScreen>
+    );
+  }
+
   // ----- Review -----
   const Row = ({ item, list, setList, idx, sub }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderBottom: idx < list.length - 1 ? '1px solid var(--border)' : 'none' }}>
@@ -171,17 +190,17 @@ function DocUploadFlow({ onClose, onDone, onHome }) {
         header={<NC.ScreenHeader title="Check what we found" onClose={onClose} onHome={onHome} />}
         footer={
           <div>
-            <Button block onClick={() => setPhase('done')}>Add {confCount} {confCount === 1 ? 'item' : 'items'} to profile</Button>
+            <Button block onClick={applyAndFinish}>Add {confCount} {confCount === 1 ? 'item' : 'items'} to profile</Button>
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10 }}><SelfReportedNote /></div>
           </div>
         }>
         <div style={{ padding: '16px 20px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           <StatusPanel tone="note" filled title="Nothing is saved yet" icon={Ic.Info}>
-            We read your {doc.source.split('—')[0].trim().toLowerCase()}. Untick anything that's wrong. You can edit details after adding.
+            Here's what we found in your document. Untick anything that's wrong. You can edit details after adding.
           </StatusPanel>
 
           <div className="meta" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Ic.File size={14} /> {doc.source} · <span className="tnum">{doc.dateOnDoc}</span>
+            <Ic.File size={14} /> {doc.source}{doc.dateOnDoc ? <> · <span className="tnum">{doc.dateOnDoc}</span></> : null}
           </div>
 
           <div>

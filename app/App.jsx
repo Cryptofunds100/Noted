@@ -19,6 +19,7 @@ function NotedApp() {
   const [toast, setToast] = useState(null);
 
   const [logs, setLogs] = useState(DEMO.LOGS);
+  const [proms, setProms] = useState([]); // the user's completed PROM entries
   const [checkinDone, setCheckinDone] = useState(false);
   const [redFlagActive, setRedFlagActive] = useState(false);
   const [redFlag, setRedFlag] = useState(null); // payload for modal
@@ -42,9 +43,11 @@ function NotedApp() {
         if (alive && s) {
           setAuthUser(s);
           if (s.profile) setProfile(p => ({ ...p, ...s.profile }));
-          // Load this user's saved entries; keep the demo seed if they have none yet.
-          const saved = await NotedAuth.listEntries(s.id).catch(() => []);
+          // Load this user's saved entries (logs + completed PROMs).
+          const saved = await NotedAuth.listEntries(s.id, 'log').catch(() => []);
           if (alive && saved && saved.length) setLogs(saved);
+          const savedProms = await NotedAuth.listEntries(s.id, 'prom').catch(() => []);
+          if (alive && savedProms && savedProms.length) setProms(savedProms);
           setOnboarded(true);
           setTab('today');
         }
@@ -116,8 +119,24 @@ function NotedApp() {
     setLogs(l => [entry, ...l]);
     persistEntry({ kind: 'log', ...entry });
     closeOverlay();
-    // demo: re-arm the red-flag prompt on Today for chest-pain style entries handled in flow
     showToast('Logged. Your clinician will see this on your next share.');
+  };
+
+  // Merge confirmed items from a document upload into the profile (deduped by
+  // name). The profile auto-save effect persists the result to the account.
+  const applyDocItems = ({ conditions = [], medications = [], allergies = [] }) => {
+    setProfile(p => {
+      const merge = (existing, incoming) => {
+        const have = new Set((existing || []).map(x => (x.name || '').trim().toLowerCase()));
+        return [...(existing || []), ...incoming.filter(x => x.name && !have.has(x.name.trim().toLowerCase()))];
+      };
+      return {
+        ...p,
+        conditions: merge(p.conditions, conditions),
+        medications: merge(p.medications, medications),
+        allergies: merge(p.allergies, allergies),
+      };
+    });
   };
 
   const saveCheckin = () => {
@@ -127,7 +146,11 @@ function NotedApp() {
     showToast('Check-in saved for today.');
   };
   const completeProm = (key, score) => {
-    persistEntry({ kind: 'prom', id: 'prom-' + key + '-' + DEMO.TODAY_KEY, key, score, date: DEMO.TODAY_LABEL, dateKey: DEMO.TODAY_KEY });
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const entry = { kind: 'prom', id: 'prom-' + key + '-' + todayKey, key, score, date: DEMO.TODAY_LABEL, dateKey: todayKey };
+    persistEntry(entry);
+    // Reflect the new score immediately so Insights/Report charts update live.
+    setProms(p => [entry, ...p.filter(e => e.id !== entry.id)]);
     closeOverlay();
     showToast(`${DEMO.PROMS[key].name} saved to your record.`);
   };
@@ -140,8 +163,10 @@ function NotedApp() {
       setAuthUser(user);
       // A returning user signing in may already have saved entries — load them.
       try {
-        const saved = await NotedAuth.listEntries(user.id);
+        const saved = await NotedAuth.listEntries(user.id, 'log');
         if (saved && saved.length) setLogs(saved);
+        const savedProms = await NotedAuth.listEntries(user.id, 'prom');
+        if (savedProms && savedProms.length) setProms(savedProms);
       } catch (e) { /* offline / not configured */ }
     }
     if (collected) setProfile(p => ({ ...p, ...collected }));
@@ -153,6 +178,8 @@ function NotedApp() {
     try { await NotedAuth.signOut(); } catch (e) { /* ignore */ }
     setAuthUser(null);
     setProfile(DEMO.PATIENT);
+    setLogs([]);
+    setProms([]);
     setOnboarded(false);
     setTab('today');
   };
@@ -190,7 +217,7 @@ function NotedApp() {
       <DeviceFrame dark={theme === 'dark'}>
         <Onboarding onFinish={finishOnboarding} onOpenDoc={openDoc} />
         {overlay && overlay.type === 'doc' && (
-          <DocUploadFlow onClose={closeOverlay} onDone={() => { closeOverlay(); showToast('Profile updated from your document.'); }} />
+          <DocUploadFlow onClose={closeOverlay} onApply={applyDocItems} onDone={() => { closeOverlay(); showToast('Profile updated from your document.'); }} />
         )}
       </DeviceFrame>
     );
@@ -201,13 +228,13 @@ function NotedApp() {
     switch (tab) {
       case 'today':
         return <TodayScreen go={setTab} openLog={openLog} openProm={openProm} openReport={() => openReport()}
-          openCheckin={openCheckin} checkinDone={checkinDone} logsToday={logsToday} profile={profile}
+          openCheckin={openCheckin} checkinDone={checkinDone} logsToday={logsToday} profile={profile} proms={proms}
           redFlagActive={redFlagActive} openRedFlag={() => setRedFlag({ name: 'Chest tightness spreading to your arm' })} />;
       case 'log':
         return <LogLandingScreen logs={logs} openLog={openLog} openVoiceJournal={() => setSheet({ type: 'voiceJournal' })} goHome={goHome} />;
       case 'insights':
         return <InsightsScreen openProm={openProm} openReport={() => openReport()}
-          openRedFlagLog={() => setSheet({ type: 'redflaglog' })} logs={logs} goHome={goHome} />;
+          openRedFlagLog={() => setSheet({ type: 'redflaglog' })} logs={logs} proms={proms} goHome={goHome} />;
       case 'profile':
         return <ProfileScreen theme={theme} setTheme={setThemeState} textScale={textScale} setTextScale={setTextScale}
           reduceMotion={reduceMotion} setReduceMotion={setReduceMotion}
@@ -242,14 +269,14 @@ function NotedApp() {
       {overlay && overlay.type === 'log' &&
         <LogFlow initial={overlay.props.initial} onClose={closeOverlay} onSave={saveLog} onRedFlag={triggerRedFlag} onHome={goHome} />}
       {overlay && overlay.type === 'prom' &&
-        <PromFlow promKey={overlay.props.promKey} onClose={closeOverlay} onComplete={completeProm} onRedFlag={triggerRedFlag} onHome={goHome} />}
+        <PromFlow promKey={overlay.props.promKey} proms={proms} onClose={closeOverlay} onComplete={completeProm} onRedFlag={triggerRedFlag} onHome={goHome} />}
       {overlay && overlay.type === 'checkin' &&
         <CheckinFlow onClose={closeOverlay} onSave={saveCheckin} onHome={goHome} sleepSource={sleepSource} profile={profile} />}
       {overlay && overlay.type === 'doc' &&
-        <DocUploadFlow onClose={closeOverlay} onHome={goHome} onDone={() => { closeOverlay(); showToast('Profile updated from your document.'); }} />}
+        <DocUploadFlow onClose={closeOverlay} onHome={goHome} onApply={applyDocItems} onDone={() => { closeOverlay(); showToast('Profile updated from your document.'); }} />}
       {overlay && overlay.type === 'report' &&
         <ReportFlow onClose={closeOverlay} initialView={overlay.props.initialView} onPrint={() => window.print()} onHome={goHome}
-          logs={logs} profile={profile} />}
+          logs={logs} profile={profile} proms={proms} />}
 
       {/* Sheets */}
       <SharingSheet open={sheet && sheet.type === 'sharing'} onClose={() => setSheet(null)} sharing={sharing} setSharing={setSharing} />

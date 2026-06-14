@@ -15,10 +15,10 @@ function PassiveStat({ icon, value, unit, label, note }) {
   );
 }
 
-function TodayScreen({ go, openLog, openProm, openReport, openCheckin, checkinDone, logsToday, redFlagActive, openRedFlag, profile }) {
-  const { PATIENT, PASSIVE, PROMS } = DEMO;
-  // Greet by the user's own name (live profile), falling back to the demo seed.
-  const firstName = (profile && (profile.firstName || (profile.name || '').trim().split(' ')[0])) || PATIENT.firstName;
+function TodayScreen({ go, openLog, openProm, openReport, openCheckin, checkinDone, logsToday, redFlagActive, openRedFlag, profile, proms }) {
+  const { PROMS } = DEMO;
+  // Greet by the user's own name (live profile); plain "Hello" until they add it.
+  const firstName = (profile && (profile.firstName || (profile.name || '').trim().split(' ')[0])) || '';
   const { Card, Button, SectionLabel, StatusPanel, SelfReportedNote, UrgentLine } = NB;
 
   // Live full date + time of day. Computed fresh on mount — so it's current
@@ -33,18 +33,18 @@ function TodayScreen({ go, openLog, openProm, openReport, openCheckin, checkinDo
   const fullDate = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const timeOfDay = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   const duePhq = PROMS.phq9;
+  const phqTaken = promStats(PROMS.phq9, proms).taken;
 
   return (
     <div className="screen-scroll anim-fade" style={{ paddingBottom: NC.NAV_H + NC.SAFE_BOTTOM + 96 }}>
       <NC.AppBar
         subtitle={`${greeting} · ${fullDate} · ${timeOfDay}`}
-        title={`Hello, ${firstName}`}
+        title={firstName ? `Hello, ${firstName}` : 'Hello'}
         trailing={<NC.RoundIconButton label="Notifications" onClick={() => go('profile')}><Ic.Bell size={20} /></NC.RoundIconButton>}
       />
 
       <div style={{ padding: '4px 20px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <NC.DemoBadge />
           <NB.SelfReportedNote />
         </div>
 
@@ -74,22 +74,6 @@ function TodayScreen({ go, openLog, openProm, openReport, openCheckin, checkinDo
           </button>
         </Card>
 
-        {/* Passive data — pulled, not asked */}
-        <div>
-          <SectionLabel trailing={<span className="tnum" style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>Synced {PASSIVE.syncedAt}</span>}>
-            From your Health app
-          </SectionLabel>
-          <Card padding={0}>
-            <div style={{ display: 'flex', alignItems: 'stretch' }}>
-              <PassiveStat icon={<Ic.Bed size={18} />} value={PASSIVE.sleepHours} unit="hrs" label="Sleep" note={PASSIVE.sleepQuality} />
-              <div style={{ width: 1, background: 'var(--border)', margin: '12px 0' }} />
-              <PassiveStat icon={<Ic.Activity size={18} />} value={PASSIVE.steps.toLocaleString()} label="Steps" />
-              <div style={{ width: 1, background: 'var(--border)', margin: '12px 0' }} />
-              <PassiveStat icon={<Ic.Heart size={18} />} value={PASSIVE.restingHr} unit="bpm" label="Resting HR" />
-            </div>
-          </Card>
-        </div>
-
         {/* Daily background check-in */}
         <div>
           <SectionLabel>Today's check-in</SectionLabel>
@@ -102,17 +86,17 @@ function TodayScreen({ go, openLog, openProm, openReport, openCheckin, checkinDo
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 16, fontWeight: 600 }}>{checkinDone ? 'Check-in done for today' : 'Quick daily check-in'}</div>
               <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 2 }}>
-                {checkinDone ? 'Thanks for logging. Tap to review.' : 'Sleep, meds, mood and more. Pre-filled from yesterday.'}
+                {checkinDone ? 'Thanks for logging. Tap to review.' : 'Sleep, meds, mood and more. Takes under a minute.'}
               </div>
             </div>
             <span style={{ color: 'var(--text-secondary)' }}><Ic.ChevR size={20} /></span>
           </Card>
         </div>
 
-        {/* Due PROM — surfaced gently */}
-        {duePhq.due && (
+        {/* Mood check-in prompt — shown until the first PHQ-9 is completed */}
+        {!phqTaken && (
           <div>
-            <SectionLabel>Due for you</SectionLabel>
+            <SectionLabel>Available for you</SectionLabel>
             <Card style={{ borderLeft: '4px solid var(--mood)' }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <span style={{ color: 'var(--mood)', marginTop: 2 }}><Ic.Brain size={22} /></span>

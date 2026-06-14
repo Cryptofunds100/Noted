@@ -27,8 +27,8 @@ function CheckinFlow({ onClose, onSave, onHome, sleepSource, profile }) {
       <div style={{ padding: '16px 20px 28px', display: 'flex', flexDirection: 'column', gap: 22 }}>
         <StatusPanel tone="info" filled icon={Ic.Refresh}>
           {sleepSource
-            ? `Most of this is filled in from yesterday and ${sleepSource.name}. Change only what's different today.`
-            : "Most of this is filled in from yesterday. Connect a watch in your profile to fill sleep and activity on their own."}
+            ? `Sleep and activity come from ${sleepSource.name}. Set the rest for how today has been.`
+            : "Set how today has been. Connect a watch in your profile to fill sleep and activity on their own."}
         </StatusPanel>
 
         {/* Sleep — passive from the wearable, but always editable */}
@@ -58,14 +58,6 @@ function CheckinFlow({ onClose, onSave, onHome, sleepSource, profile }) {
             <div className="anim-fade" style={{ marginTop: 12 }}>
               <SleepStepper value={sleepHours}
                 onChange={(v) => { setSleepHours(v); setSleepEdited(true); }} />
-              {sleepEdited && sleepSource && (
-                <button onClick={() => { setSleepHours(DEMO.PASSIVE.sleepHours); setSleepEdited(false); }}
-                  className="npress" style={{ marginTop: 10, border: 0, background: 'transparent', color: 'var(--brand-deep-teal-blue)',
-                    fontFamily: 'inherit', fontSize: 15, fontWeight: 600, cursor: 'pointer', padding: '4px 2px',
-                    display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <Ic.Refresh size={16} /> Use {sleepSource.device} reading
-                </button>
-              )}
             </div>
           )}
           <div style={{ marginTop: 12 }}>

@@ -242,16 +242,6 @@ function Modal({ open, onClose, children, tone }) {
   );
 }
 
-function DemoBadge({ style }) {
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 999,
-      background: 'var(--surface-sunken)', border: '1px solid var(--border)', color: 'var(--text-secondary)',
-      fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', ...style }}>
-      Demo data
-    </span>
-  );
-}
-
 // Toast — small confirmation, auto-dismiss.
 function Toast({ toast }) {
   if (!toast) return null;
@@ -273,5 +263,5 @@ function Toast({ toast }) {
 }
 
 Object.assign(window, {
-  NC: { SAFE_TOP, SAFE_BOTTOM, NAV_H, BottomNav, FAB, AppBar, HomeButton, RoundIconButton, ScreenHeader, OverlayScreen, Sheet, Modal, DemoBadge, Toast },
+  NC: { SAFE_TOP, SAFE_BOTTOM, NAV_H, BottomNav, FAB, AppBar, HomeButton, RoundIconButton, ScreenHeader, OverlayScreen, Sheet, Modal, Toast },
 });

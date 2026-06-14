@@ -91,4 +91,48 @@ function Sparkline({ data, color = 'var(--brand-deep-teal-blue)', max = 10, widt
   );
 }
 
-Object.assign(window, { ChartLegend, LineChart, BarChart, Sparkline });
+// ---- Real-data analytics helpers ------------------------------------------
+// Derive chart inputs from the user's own logs / completed PROMs. Each returns
+// an empty-but-safe shape so screens can render honest empty states.
+
+const _fmtDay = (dk, opts) => {
+  const d = new Date(dk);
+  return isNaN(d) ? String(dk) : d.toLocaleDateString('en-GB', opts);
+};
+
+// A PROM's score history from completed entries → { points, scores, lastScore, taken }.
+function promStats(promDef, promEntries) {
+  const mine = (promEntries || [])
+    .filter(e => e && e.key === promDef.key && e.score != null)
+    .slice()
+    .sort((a, b) => String(a.dateKey).localeCompare(String(b.dateKey)));
+  const points = mine.map(e => ({ date: _fmtDay(e.dateKey, { day: 'numeric', month: 'short' }), score: e.score }));
+  const scores = points.map(p => p.score);
+  return { points, scores, lastScore: scores.length ? scores[scores.length - 1] : null, taken: scores.length > 0 };
+}
+
+// Daily max symptom severity from logs → { labels, data, days } oldest→newest.
+function severityByDay(logs) {
+  const byDay = {};
+  (logs || []).forEach(l => {
+    if (l == null || l.severity == null || !l.dateKey) return;
+    byDay[l.dateKey] = Math.max(byDay[l.dateKey] || 0, l.severity);
+  });
+  const keys = Object.keys(byDay).sort();
+  return { labels: keys.map(k => _fmtDay(k, { weekday: 'short' })), data: keys.map(k => byDay[k]), days: keys.length };
+}
+
+// Symptom frequency bars from logs (top 6 by count), coloured by avg severity.
+function symptomFrequency(logs) {
+  const counts = {}, sevSum = {};
+  (logs || []).forEach(l => {
+    if (!l || !l.name) return;
+    counts[l.name] = (counts[l.name] || 0) + 1;
+    sevSum[l.name] = (sevSum[l.name] || 0) + (l.severity || 0);
+  });
+  const names = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 6);
+  const sev = (typeof sevHex === 'function') ? sevHex : () => 'var(--brand-deep-teal-blue)';
+  return names.map(n => ({ label: n.split(' ')[0], value: counts[n], color: sev(Math.round(sevSum[n] / counts[n])) }));
+}
+
+Object.assign(window, { ChartLegend, LineChart, BarChart, Sparkline, promStats, severityByDay, symptomFrequency });

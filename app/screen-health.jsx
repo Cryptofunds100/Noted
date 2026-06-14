@@ -177,7 +177,6 @@ function ImportHealthSheet({ open, onClose, defaultSource = 'apple', health, set
                 <span style={{ color: on ? 'var(--brand-deep-teal-blue)' : 'var(--text-secondary)', flexShrink: 0 }}><Icon size={20} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>{m.label}</div>
-                  <div className="meta tnum">{m.sample}</div>
                 </div>
                 <span style={{ width: 24, height: 24, borderRadius: 6, flexShrink: 0, display: 'grid', placeItems: 'center',
                   background: on ? 'var(--brand-deep-teal-blue)' : 'transparent', color: 'var(--text-on-brand)',

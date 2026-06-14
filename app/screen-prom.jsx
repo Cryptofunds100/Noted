@@ -7,8 +7,20 @@ function promBand(prom, score) {
   return b ? b.label : '';
 }
 
-function PromFlow({ promKey, onClose, onComplete, onRedFlag, onHome }) {
+// "2026-06-06" → "6 Jun" for a compact chart axis label.
+function promShortDate(dateKey) {
+  const d = dateKey ? new Date(dateKey + 'T00:00:00') : null;
+  return d && !isNaN(d) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
+}
+
+function PromFlow({ promKey, onClose, onComplete, onRedFlag, onHome, proms }) {
   const prom = DEMO.PROMS[promKey];
+  // The user's own prior scores for this measure (oldest → newest), built from
+  // their saved PROM entries. Empty until they've completed it before.
+  const priorScores = (proms || [])
+    .filter(e => e.key === promKey && e.score != null)
+    .slice().sort((a, b) => (a.dateKey || '').localeCompare(b.dateKey || ''))
+    .map(e => ({ score: e.score, date: promShortDate(e.dateKey) }));
   const [step, setStep] = React.useState(0); // 0..n-1 questions, then n = result
   const [answers, setAnswers] = React.useState(Array(prom.items.length).fill(null));
   const total = prom.items.length;
@@ -58,15 +70,15 @@ function PromFlow({ promKey, onClose, onComplete, onRedFlag, onHome }) {
             This is a recognised questionnaire. The score helps you and your clinician see change over time. It is not a diagnosis.
           </StatusPanel>
 
-          {prom.history && prom.history.filter(h => h.score != null).length > 1 && (
+          {priorScores.length >= 1 && (
             <Card>
               <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Your {prom.name} over time</div>
               <div className="meta" style={{ marginBottom: 14 }}>
-                Lower is better. Your scores have eased from {prom.history.find(h=>h.score!=null).score} to {displayScore} since April.
+                How today compares with your previous {priorScores.length === 1 ? 'score' : 'scores'}. Lower is better.
               </div>
               <LineChart
-                series={[{ data: [...prom.history.filter(h => h.score != null).map(h => h.score), prom.kind === 'numeric' ? score / total : score], color: 'var(--mood)' }]}
-                labels={[...prom.history.filter(h => h.score != null).map(h => h.date), 'Now']}
+                series={[{ data: [...priorScores.map(h => h.score), prom.kind === 'numeric' ? score / total : score], color: 'var(--mood)' }]}
+                labels={[...priorScores.map(h => h.date), 'Now']}
                 max={prom.kind === 'numeric' ? 10 : prom.maxScore}
                 yTicks={prom.kind === 'numeric' ? [10, 5, 0] : [prom.maxScore, Math.round(prom.maxScore / 2), 0]} />
             </Card>

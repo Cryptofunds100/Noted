@@ -309,7 +309,8 @@ function ProfileScreen({ theme, setTheme, textScale, setTextScale, reduceMotion,
   health, openHealthSync, openHealthImport, showToast, lastLogDate }) {
   const PATIENT = profile || DEMO.PATIENT;
   const { Card, SectionLabel, ListRow, StatusPanel, Button, Toggle } = NB;
-  const initials = PATIENT.name.split(' ').map(s => s[0]).join('').slice(0, 2).toUpperCase();
+  const initials = (PATIENT.name || '').trim().split(/\s+/).filter(Boolean)
+    .map(s => s[0]).join('').slice(0, 2).toUpperCase() || '–';
 
   return (
     <div className="screen-scroll anim-fade" style={{ paddingBottom: NC.NAV_H + NC.SAFE_BOTTOM + 96 }}>
@@ -322,8 +323,7 @@ function ProfileScreen({ theme, setTheme, textScale, setTextScale, reduceMotion,
             display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 700, flexShrink: 0 }}>{initials}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 19, fontWeight: 600 }}>{PATIENT.name}</span>
-              {PATIENT.demo && <NC.DemoBadge />}
+              <span style={{ fontSize: 19, fontWeight: 600, color: PATIENT.name ? 'var(--text)' : 'var(--text-secondary)' }}>{PATIENT.name || 'Add your details'}</span>
             </div>
             <div className="meta tnum">{[PATIENT.age, PATIENT.gender, PATIENT.pronouns].filter(Boolean).join(' · ')}</div>
             {authUser && authUser.email && (
@@ -562,7 +562,7 @@ function EditIdentitySheet({ open, onClose, profile, setProfile, onSaved }) {
     <NC.Sheet open={open} onClose={onClose} title="Edit your details">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <Field label="Full name" error={touched && !nameValid ? 'Enter your name.' : undefined}>
-          <TextInput value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Ade Bello" autoComplete="name" />
+          <TextInput value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Jane Smith" autoComplete="name" />
         </Field>
 
         <Field label="Age" help="In years." error={touched && !ageValid ? 'Enter an age between 0 and 120.' : undefined}>
@@ -707,7 +707,7 @@ function RecordSheet({ open, onClose, profile, setProfile, onSaved }) {
     <React.Fragment>
       <NC.Sheet open={open} onClose={onClose} title="Your health record">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-          {PATIENT.demo && <NC.DemoBadge />}<NB.SelfReportedNote />
+          <NB.SelfReportedNote />
         </div>
         <StatusPanel tone="info" style={{ marginBottom: 18 }}>
           Keep this up to date so your shared reports are accurate. Changes save as you make them.

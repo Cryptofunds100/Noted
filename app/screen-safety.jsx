@@ -67,16 +67,20 @@ function RedFlagModal({ open, payload, onClose, onLog }) {
   );
 }
 
-// Red-flag log — the historical record.
-function RedFlagLogSheet({ open, onClose }) {
-  const { RED_FLAGS } = DEMO;
+// Red-flag log — the historical record (the user's own flagged events).
+function RedFlagLogSheet({ open, onClose, entries = [] }) {
   return (
     <NC.Sheet open={open} onClose={onClose} title="Urgent-symptom record">
       <NB.StatusPanel tone="info" filled style={{ marginBottom: 16 }} icon={Ic.Flag}>
         Times Noted flagged a symptom that may need urgent care, and what you did next.
       </NB.StatusPanel>
+      {entries.length === 0 && (
+        <div className="meta" style={{ padding: '4px 2px 12px' }}>
+          None recorded yet. If Noted ever flags a symptom that may need urgent care, it will appear here.
+        </div>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {RED_FLAGS.map(r => (
+        {entries.map(r => (
           <NB.Card key={r.id} style={{ borderLeft: '4px solid var(--red-flag)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontSize: 16, fontWeight: 600 }}>{r.symptom}</span>
